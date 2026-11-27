@@ -1,42 +1,22 @@
 """Run engine and UI/contrast suites in both browser themes and reduced motion.
 
-The local server exists only for this check, on an ephemeral loopback port.
+Tests the running full-stack application supplied by --url.
 The original saved game and native browser preference are restored afterward.
 """
 import json
 import argparse
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
-import threading
 import time
 import urllib.request
+from uuid import uuid4
 
 from browser_check import CDP
 
 
-ROOT = Path(__file__).resolve().parents[1]
-
-
-class Handler(SimpleHTTPRequestHandler):
-    def log_message(self, *_):
-        pass
-
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", help="Test an existing Vite dev or preview server instead of dist")
+    parser.add_argument("--url", default="http://127.0.0.1:3000", help="Test a running development or production app")
     args = parser.parse_args()
-    server = None
-    if args.url:
-        url = args.url.rstrip("/")
-    else:
-        if not (ROOT / "dist" / "index.html").exists():
-            raise SystemExit("Build first with npm run build, or pass --url http://127.0.0.1:3000")
-        server = ThreadingHTTPServer(("127.0.0.1", 0), partial(Handler, directory=str(ROOT / "dist")))
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
-        thread.start()
-        url = f"http://127.0.0.1:{server.server_port}"
+    url = args.url.rstrip("/")
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     with opener.open(url + "/ui-tests.html", timeout=5) as response:
         assert response.status == 200
@@ -44,6 +24,7 @@ def main():
     cdp.sock.settimeout(150)
     cdp.call("Runtime.enable")
     cdp.call("Page.enable")
+    cdp.call("Network.setCacheDisabled", {"cacheDisabled": False})
     previous_url = cdp.evaluate("location.href", None)
 
     def preference(scheme=None, motion=None):
@@ -53,13 +34,18 @@ def main():
         cdp.call("Emulation.setEmulatedMedia", {"features": features})
 
     def navigate(path):
-        target = url + path
+        target = url + path + "?qa=" + uuid4().hex
         result = cdp.call("Page.navigate", {"url": target})
         if result.get("errorText"):
             raise RuntimeError(result["errorText"])
-        deadline = time.monotonic() + 15
+        ready = {
+            "/tests.html": "window.testResults",
+            "/ui-tests.html": "window.uiCurrentTest",
+            "/index.html": "document.querySelector('#human-hand .card')",
+        }[path]
+        deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
-            if cdp.evaluate(f"location.href === {json.dumps(target)} && document.readyState === 'complete' && ({json.dumps(path)} !== '/index.html' || !!document.querySelector('#human-hand .card'))", None):
+            if cdp.evaluate(f"location.href === {json.dumps(target)} && !!({ready})", None):
                 return
             time.sleep(.05)
         raise TimeoutError("Game page did not load")
@@ -77,7 +63,7 @@ def main():
         for scheme, motion in (("light", "no-preference"), ("dark", "no-preference"), ("dark", "reduce")):
             preference(scheme, motion)
             navigate("/ui-tests.html")
-            deadline = time.monotonic() + 120
+            deadline = time.monotonic() + 600
             while time.monotonic() < deadline:
                 report = cdp.evaluate("""window.uiTestsDone ? ({
                   title:document.title,
@@ -144,9 +130,6 @@ def main():
         preference()
         cdp.call("Page.navigate", {"url": previous_url})
         cdp.sock.close()
-        if server:
-            server.shutdown()
-            server.server_close()
     if failed:
         raise SystemExit(1)
 

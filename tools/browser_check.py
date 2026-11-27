@@ -1,4 +1,4 @@
-"""Tiny dependency-free CDP fallback. agent-browser is absent on this machine.
+"""Tiny dependency-free CDP helper for repeatable browser regression checks.
 
 Uses the session-provided desktop websocket directly, never CDP discovery.
 The desktop proxy routes page commands to this session's own browser pane.

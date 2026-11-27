@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import G from './game.js';
 import { loadSession, SAVE_KEY } from './session.js';
+import { applyAction } from './actions.js';
 
-export default function useGame() {
+export default function useGame(online) {
   const [session, setSession] = useState(loadSession);
   const current = useRef(session);
+  current.current = { ...session, state: online?.room.game || session.state };
   const [selection, setSelection] = useState(() => new Set());
   const [modal, setModal] = useState(null);
   const [gameId, setGameId] = useState(0);
@@ -60,6 +62,7 @@ export default function useGame() {
   }, [commit, notify, tone]);
 
   useEffect(() => {
+    if (online) return;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(session));
       saveWarning.current = false;
@@ -67,13 +70,22 @@ export default function useGame() {
       if (!saveWarning.current) notify('Playing without saves. Progress will be lost when you close this page.');
       saveWarning.current = true;
     }
-  }, [session, notify]);
+  }, [session, notify, online]);
 
   useEffect(() => {
-    if (session.state.status !== 'playing' || session.state.turn !== 1 || modal) return;
+    if (online || session.state.status !== 'playing' || session.state.turn !== 1 || modal) return;
     const timer = setTimeout(() => move(state => G.computerTurn(state)), 1000);
     return () => clearTimeout(timer);
-  }, [session.state, modal, move]);
+  }, [session.state, modal, move, online]);
+
+  function act(action) {
+    if (online) {
+      online.send(action).then(() => {
+        setSelection(new Set());
+        tone(current.current.sound);
+      }).catch(error => notify(error.message));
+    } else move(state => applyAction(state, 0, action));
+  }
 
   const toggleCard = useCallback(id => {
     setSelection(previous => {
@@ -113,7 +125,7 @@ export default function useGame() {
       return;
     }
     setModal(null);
-    move(state => G.hit(state, 0, card.id, target, group, side));
+    act({ type: 'hit', id: card.id, target, group, ...(side ? { side } : {}) });
   }
 
   function newGame() {
@@ -124,13 +136,20 @@ export default function useGame() {
   }
 
   function nextRound() {
+    if (online) {
+      act({ type: current.current.state.status === 'game' ? 'rematch' : 'nextRound' });
+      return;
+    }
     if (current.current.state.status === 'game') return newGame();
     move(state => G.startRound(state));
     setModal(null);
   }
 
   return {
-    ...session, selection, modal, gameId, toast, toggleCard, move, hint, hit,
+    ...session, state: online?.room.game || session.state,
+    online, interactive: !online || (online.connected && !online.busy),
+    selection, modal, gameId: online ? `${online.room.code}:${online.room.match}` : gameId,
+    toast, toggleCard, move, act, hint, hit,
     newGame, nextRound, setModal,
     sortHand: () => commit({ ...current.current, sort: current.current.sort === 'number' ? 'color' : 'number' }),
     toggleSound: () => {

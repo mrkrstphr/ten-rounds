@@ -1,10 +1,10 @@
 import { TextButton } from './ui.jsx';
 
-export default function Header({ game }) {
+export default function Header({ game, onOnline }) {
   const { state, sound, toggleSound, setModal } = game;
   return <>
     <header className="site-header flex h-[75px] items-center justify-between border-b border-line tablet:h-[82px] wide:h-[104px]">
-      <a className="brand flex items-center gap-[7px] font-display text-xl font-[650] tracking-[-1px] min-[390px]:text-[23px] tablet:text-[27px]" href="./" aria-label="TenRounds home">
+      <a className="brand flex items-center gap-[7px] font-display text-xl font-[650] tracking-[-1px] min-[390px]:text-[23px] tablet:text-[27px]" href="/" aria-label="TenRounds home">
         <span className="brand-mark relative mr-1 hidden h-[29px] w-7 scale-90 min-[390px]:block tablet:mr-2 tablet:scale-100" aria-hidden="true">
           <i className="absolute top-0.5 left-px h-[23px] w-[15px] -rotate-[19deg] rounded-[3px] border-[1.6px] border-accent bg-paper" />
           <i className="absolute top-[3px] left-2 h-[23px] w-[15px] rotate-[22deg] rounded-[3px] border-[1.6px] border-accent bg-paper" />
@@ -20,13 +20,16 @@ export default function Header({ game }) {
             <path d={sound ? 'M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14' : 'm16 9 5 6m0-6-5 6'} />
           </svg>
         </button>
-        <TextButton id="new-button" className="new-game gap-0 text-[0px] tablet:gap-2 tablet:text-xs" onClick={() => setModal({ type: 'new' })}><span className="text-[23px] leading-none tablet:text-xl" aria-hidden="true">↻</span><span className="sr-only tablet:not-sr-only">New game</span></TextButton>
+        {!game.online && <TextButton id="new-button" className="new-game gap-0 text-[0px] tablet:gap-2 tablet:text-xs" onClick={() => setModal({ type: 'new' })}><span className="text-[23px] leading-none tablet:text-xl" aria-hidden="true">↻</span><span className="sr-only tablet:not-sr-only">New game</span></TextButton>}
       </nav>
     </header>
     <div className="page-heading flex items-center justify-between gap-3 py-3.5 tablet:py-4">
-      <p className="subtitle text-[10px] text-muted tablet:text-xs">Ten goals. One good hand at a time.</p>
+      <div className="flex items-center gap-5">
+        <p className={`subtitle text-[10px] text-muted tablet:text-xs ${game.online ? '' : 'hidden min-[480px]:block'}`}>Ten goals. One good hand at a time.</p>
+        {!game.online && <TextButton id="online-button" className="relative py-0! text-[10px] after:absolute after:inset-x-0 after:-inset-y-[7px] tablet:text-xs" onClick={onOnline}>Play online ↗</TextButton>}
+      </div>
       <div className="session-label flex items-center gap-[5px] text-[7px] tracking-[.6px] text-muted tablet:gap-1.5 tablet:text-[8px] wide:gap-2.5 wide:text-[9px] wide:tracking-[1.35px]">
-        <span className="live-dot size-[5px] rounded-full bg-accent" /><span className="hidden tablet:inline">SOLO TABLE</span>
+        <span className="live-dot size-[5px] rounded-full bg-accent" /><span className="hidden tablet:inline">{game.online ? 'FRIENDS TABLE' : 'SOLO TABLE'}</span>
         <span className="session-separator mx-0.5 hidden tablet:inline">/</span>
         <span id="round-label">ROUND {String(state.round).padStart(2, '0')}</span>
       </div>

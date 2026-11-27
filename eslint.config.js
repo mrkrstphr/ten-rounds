@@ -3,7 +3,7 @@ import hooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 export default [
-  { ignores: ['dist', 'node_modules'] },
+  { ignores: ['dist', 'build', '.react-router', 'node_modules'] },
   {
     files: ['**/*.{js,jsx,mjs}'],
     ...js.configs.recommended,

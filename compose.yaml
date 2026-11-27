@@ -1,0 +1,19 @@
+services:
+  tenrounds:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-3000}:3000"
+    environment:
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
+    volumes:
+      - rooms:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 15s
+
+volumes:
+  rooms:

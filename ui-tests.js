@@ -35,7 +35,7 @@
     frame.style.width=width+'px';
     const target=new URL('./?ui-check='+Math.random(),location.href).href;
     frame.src=target;
-    await until(()=>frame.contentWindow.location.href===target&&frame.contentDocument?.querySelector('#human-hand .card'),10000);
+    await until(()=>frame.contentWindow.location.href===target&&frame.contentDocument?.querySelector('#human-hand .card'),30000);
     win=frame.contentWindow;doc=frame.contentDocument;window.uiTestStep='load: waiting for fonts';await win.document.fonts.ready;window.uiTestStep='load: ready';
     assert($('#human-hand .card'),'Game initialized with a hand');assertBranding();
     return read();

@@ -1,8 +1,8 @@
-name: Check and deploy TenRounds
+name: Check TenRounds
 
 on:
   push:
-    branches: [main]
+    branches: [main, multiplayer]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: checks-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,30 +30,26 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
-      - name: Test rules and save migration
+      - name: Test rules, saves, rooms, build, and production server
         run: npm test
-      - name: Build
-        run: npm run build
-      - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
-        with:
-          path: dist
-
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Configure Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+      - name: Build deployment image
+        run: docker build --tag tenrounds:ci .
+      - name: Smoke-test production-only container
+        run: >
+          docker run --rm --read-only tenrounds:ci node --input-type=module -e
+          "import assert from 'node:assert/strict';
+          import { once } from 'node:events';
+          import { createAppServer } from './server/index.js';
+          const app = await createAppServer();
+          app.server.listen(0, '127.0.0.1');
+          await once(app.server, 'listening');
+          const origin = 'http://127.0.0.1:' + app.server.address().port;
+          try {
+          assert.equal((await fetch(origin + '/health')).status, 200);
+          assert.match(await fetch(origin).then(r => r.text()), /TenRounds/);
+          const room = await fetch(origin + '/api/rooms', {
+          method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: 'container-smoke', type: 'create', name: 'Image check' })
+          }).then(r => r.json());
+          assert.equal(room.ok, true);
+          } finally { await app.close(); }"

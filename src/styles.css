@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&display=swap');
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/manrope";
 @import "tailwindcss";
 
 :root {
@@ -85,8 +86,8 @@
 }
 
 @theme {
-  --font-sans: "DM Sans", sans-serif;
-  --font-display: "Manrope", "DM Sans", sans-serif;
+  --font-sans: "DM Sans Variable", sans-serif;
+  --font-display: "Manrope Variable", "DM Sans Variable", sans-serif;
   --font-serif: Georgia, serif;
   --breakpoint-tablet: 681px;
   --breakpoint-wide: 851px;
@@ -136,10 +137,14 @@
   button { @apply cursor-pointer touch-manipulation; }
   button:disabled { @apply cursor-default; }
   button, a { -webkit-tap-highlight-color: transparent; }
-  button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 5px; }
+  button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 5px; }
 }
 
 @layer components {
+  .room-label { @apply mb-5 flex flex-col gap-2 text-xs text-secondary; }
+  .room-input { @apply w-full min-w-0 rounded-md border border-control bg-paper px-3 py-3 text-sm text-ink; }
+  .room-bar, .player-details { overflow-wrap: anywhere; }
+  .player-details { min-width: 0; }
   .game-table {
     background-image: radial-gradient(ellipse at 50% 40%, var(--table-highlight) 0%, transparent 65%);
   }
@@ -167,7 +172,7 @@
   }
   .turn-badge::before {
     content: "";
-    @apply size-1 rounded-full bg-accent;
+    @apply size-1 shrink-0 rounded-full bg-accent;
   }
   .turn-badge.thinking::before { animation: thinking 1s infinite; }
 }

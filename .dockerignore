@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+build
+dist
+*.local
+**/*.local
+.env
+.env.*
+!.env.example
+**/__pycache__
