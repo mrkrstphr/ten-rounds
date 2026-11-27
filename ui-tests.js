@@ -47,6 +47,22 @@
   }
   function finishDealing(){for(const button of handNodes().values())for(const animation of button.getAnimations())animation.finish();}
   const isDealing=animation=>(animation.id==='deal'||animation.animationName==='deal')&&animation.playState==='running';
+  function fittedHand(){
+    const hand=$('#human-hand'),bounds=hand.getBoundingClientRect(),cards=[...hand.children];
+    assert(hand.scrollWidth<=hand.clientWidth+1&&hand.scrollLeft===0,'The entire hand must fit without horizontal scrolling');
+    for(let i=0;i<cards.length;i++){
+      const card=cards[i],rect=card.getBoundingClientRect(),next=cards[i+1];
+      assert(rect.left>=bounds.left&&rect.right<=bounds.right+1&&rect.top>=bounds.top&&rect.bottom<=bounds.bottom,'Every card must stay inside the hand');
+      const exposed=next&&next.offsetTop===card.offsetTop?next.getBoundingClientRect().left-rect.left:rect.width;
+      assert(exposed>=24,`Card needs a tappable exposed strip, got ${exposed}px`);
+    }
+  }
+  async function tapCard(button){
+    const rect=button.getBoundingClientRect();
+    const target=doc.elementFromPoint(rect.left+14,rect.top+14)?.closest('button');
+    assert(target===button,'The visible card index must target that card, not an overlapping neighbor');
+    await click(target);finishDealing();
+  }
   function assertBranding(){
     assert(doc.title==='TenRounds'&&$('.brand').textContent.trim()==='TenRounds','The game and document must use the chosen name');
     assert($('.brand').getAttribute('aria-label')==='TenRounds home','Accessible branding must use the chosen name');
@@ -130,7 +146,7 @@
       localStorage.setItem(KEY,'not-json');await load();assert(read().status==='playing'&&read().round===1);conserve();
       const state=fixture();state.players[0].phase=10;await load(state);assert(read().players[0].phase===0);conserve();
     });
-    for(const width of [1440,1024,768,680,390,320]){
+    for(const width of [1440,1024,768,680,481,480,390,320]){
       await test(`Responsive layout at ${width}px: no page overflow, accessible cards and controls`,async()=>{
         await load(fixture(),width);const root=doc.documentElement;
         assert(win.innerWidth===width,`Expected viewport ${width}, got ${win.innerWidth}`);
@@ -146,16 +162,39 @@
         const hand=$('#human-hand'),h=hand.getBoundingClientRect();assert(h.width>0&&h.width<=width);
         const actions=$('.hand-actions').getBoundingClientRect();assert(actions.right<=width+1,'Actions overflow');
         assert($('#discard-button').getBoundingClientRect().width>=60);
-        if(width>680)assert(hand.scrollWidth<=hand.clientWidth+1,'Desktop hand should fit without scrolling');
-        else assert(win.getComputedStyle(hand).overflowX==='auto','Mobile hand should allow horizontal scrolling when needed');
+        assert(hand.scrollWidth<=hand.clientWidth+1,'The hand should fit without scrolling');
+        if(width<=680){finishDealing();fittedHand();}
         await click('#draw-pile');await selectCard(c=>c.kind==='number');assert(!$('#discard-button').disabled);
+        if(width<=680){finishDealing();fittedHand();}
         await click('#help-button');assert($('#modal').open);await click('#close-modal');conserve();
       });
     }
-    await test('Selecting and deselecting retain every card, face, keyboard focus, and mobile scroll position',async()=>{
+    await test('Mobile overlap keeps all eleven cards tappable, even when every card is selected',async()=>{
+      await load(fixture({hand:[5,5,5,7,7,7,5,12,'skip','wild',11],step:'play'}),320);finishDealing();
+      const before=handNodes(),cards=[...before.values()];
+      for(const width of [320,360,390,480,481,540,680]){
+        frame.style.width=width+'px';await wait(0);fittedHand();
+        assert(new Set(cards.map(card=>card.offsetTop)).size===(width<=480?2:1),'Small phones need two compact rows; wider screens need one row');
+        for(const button of cards){await tapCard(button);assert(button.getAttribute('aria-pressed')==='true');}
+        fittedHand();retainedHand(before);
+        for(const button of cards){await tapCard(button);assert(button.getAttribute('aria-pressed')==='false');}
+        assert(doc.documentElement.scrollWidth<=width+1,'Mobile overlap must not cause page overflow');
+      }
+      for(const button of cards){button.focus({preventScroll:true});assert(doc.activeElement===button,'Every overlapping card remains keyboard focusable');}
+      conserve();
+    });
+    await test('Short mobile hands fit naturally after laying cards, without empty columns or scrolling',async()=>{
+      for(const count of [1,2,5,6,7]){
+        await load(fixture({hand:[5,5,5,7,7,7,5].slice(0,count),step:'play'}),320);finishDealing();fittedHand();
+        assert(new Set([...handNodes().values()].map(card=>card.offsetTop)).size===(count<=6?1:2),'Only occupied rows should remain');
+        for(const button of handNodes().values())await tapCard(button);
+        fittedHand();conserve();
+      }
+    });
+    await test('Selecting and deselecting retain every card, face, keyboard focus, and mobile hand position',async()=>{
       await load(fixture({step:'play'}),390);finishDealing();
       const hand=$('#human-hand'),before=handNodes(),button=[...before.values()][4],face=button.firstElementChild;
-      hand.scrollLeft=80;const scroll=hand.scrollLeft;button.focus({preventScroll:true});
+      const scroll=hand.scrollLeft;assert(scroll===0);button.focus({preventScroll:true});
       const mutations=[],observer=new win.MutationObserver(batch=>mutations.push(...batch));observer.observe(hand,{childList:true,subtree:true});
       try{
         for(let i=0;i<4;i++){
@@ -172,13 +211,13 @@
     await test('Drawing from either pile inserts only the new sorted card without replaying the hand',async()=>{
       for(const source of ['draw-pile','discard-pile']){
         await load(fixture(),390);finishDealing();
-        const hand=$('#human-hand'),before=handNodes();hand.scrollLeft=70;const scroll=hand.scrollLeft;
+        const hand=$('#human-hand'),before=handNodes(),scroll=hand.scrollLeft;assert(scroll===0);
         const mutations=[],observer=new win.MutationObserver(batch=>mutations.push(...batch));observer.observe(hand,{childList:true});
         try{
           await click('#'+source);retainedHand(before);
           const records=[...mutations,...observer.takeRecords()],added=records.flatMap(r=>[...r.addedNodes]),removed=records.flatMap(r=>[...r.removedNodes]);
           assert(added.length===1&&!removed.length,'Drawing must insert one card and leave the other ten attached');
-          assert(hand.scrollLeft===scroll,'Drawing must preserve mobile scroll position');
+          assert(hand.scrollLeft===scroll,'Drawing must not introduce horizontal scrolling');
           assert([...before.values()].every(card=>!card.disabled&&!card.getAnimations().some(isDealing)),'Existing cards must enable without re-dealing');
           const cards=read().players[0].hand,values=[...hand.children].map(button=>{const card=cards.find(c=>String(c.id)===button.dataset.id);return card.kind==='number'?card.value:card.kind;});
           assert(values.join(',')===(source==='draw-pile'?'5,5,5,5,7,7,7,11,12,wild,skip':'4,5,5,5,5,7,7,7,12,wild,skip'),'Drawn card must appear in its sorted position');
@@ -188,18 +227,19 @@
           await click(drawn);await click(drawn);
           assert(drawn.getAttribute('aria-pressed')==='false','A just-drawn card can be toggled repeatedly');
           assert(drawn.getAnimations().filter(isDealing).every(animation=>animations.includes(animation)),'Toggling a new card must not restart its entrance');
+          finishDealing();fittedHand();
           conserve();
         }finally{observer.disconnect();}
       }
     });
-    await test('Sorting reorders existing cards without losing selection, focus, scroll, or restarting dealing',async()=>{
+    await test('Sorting reorders existing cards without losing selection, focus, fit, or restarting dealing',async()=>{
       await load(fixture({hand:[{value:12,color:'red'},{value:1,color:'yellow'},{value:8,color:'blue'},{value:3,color:'green'},5,5,7,7,'wild','skip'],step:'play'}),390);finishDealing();
       const hand=$('#human-hand'),before=handNodes(),order=[...before.keys()],button=[...before.values()][4];
-      await click(button);button.focus({preventScroll:true});hand.scrollLeft=60;const scroll=hand.scrollLeft;
+      await click(button);button.focus({preventScroll:true});const scroll=hand.scrollLeft;assert(scroll===0);
       await click('#sort-button');retainedHand(before);
       assert([...handNodes().keys()].join(',')!==order.join(','),'Sort must actually reorder the cards');
       assert(button.getAttribute('aria-pressed')==='true'&&doc.activeElement===button,'Sort must keep the selected and focused button');
-      assert(hand.scrollLeft===scroll,'Sort must retain mobile scroll');
+      assert(hand.scrollLeft===scroll,'Sort must not introduce horizontal scrolling');
       assert([...before.values()].every(card=>!card.getAnimations().some(isDealing)),'Sort must not re-deal cards');
       await click('#sort-button');retainedHand(before);assert([...handNodes().keys()].join(',')===order.join(','),'Number order must be restored');
     });

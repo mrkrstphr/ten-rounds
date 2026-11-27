@@ -30,7 +30,7 @@ export default function Hand({ game }) {
       </div>
       <TextButton id="sort-button" className="sort-button gap-1 text-[9px]" title="Switch between number and color sorting" onClick={sortHand}><span className="mr-[3px] text-sm" aria-hidden="true">⇅</span> Sort by <span id="sort-label">{sort}</span></TextButton>
     </div>
-    <div id="human-hand" className="human-hand flex min-h-[131px] justify-start gap-[5px] overflow-x-auto px-1 pt-[26px] pb-[17px] [overflow-anchor:none] [scrollbar-width:thin] [scrollbar-color:var(--strong-line)_transparent] tablet:min-h-[127px] tablet:justify-center tablet:gap-1 tablet:overflow-visible tablet:pt-7 tablet:pb-3 wide:gap-1.5 desktop:min-h-[151px] desktop:gap-[9px]" aria-label="Select cards in your hand">
+    <div id="human-hand" style={{ '--hand-count': Math.max(1, cards.length) }} className="human-hand flex min-h-[131px] justify-center gap-[5px] px-1 pt-[26px] pb-[17px] [overflow-anchor:none] tablet:min-h-[127px] tablet:gap-1 tablet:pt-7 tablet:pb-3 wide:gap-1.5 desktop:min-h-[151px] desktop:gap-[9px]" aria-label="Select cards in your hand">
       {cards.map((card, index) => <HandCard key={card.id} card={card} selected={selection.has(card.id)} disabled={!canPlay} delay={initialIds.current.has(card.id) ? index * 18 : 0} onToggle={toggleCard} />)}
     </div>
     <div className="hand-actions flex min-h-[39px] items-center justify-between gap-2 tablet:min-h-[54px] tablet:flex-wrap tablet:pt-2 wide:flex-nowrap desktop:gap-3.5">
