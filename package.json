@@ -1,0 +1,31 @@
+{
+  "name": "tenrounds",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 3000 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 3000 --strictPort",
+    "lint": "eslint src vite.config.js eslint.config.js tools/test-engine.mjs tools/test-session.mjs",
+    "test": "node tools/test-engine.mjs && node --test tools/test-session.mjs",
+    "test:ui": "python tools/verify_themes.py"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@vitejs/plugin-react": "6.3.0",
+    "eslint": "10.15.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "tailwindcss": "4.3.5",
+    "vite": "8.4.0"
+  }
+}

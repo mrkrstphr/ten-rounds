@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  --paper: #f6f5f0;
+  --ink: #24382e;
+  --secondary: #4d5d50;
+  --muted: #586752;
+  --green: #304e40;
+  --line: #c6cebd;
+  --strong-line: #849178;
+  --surface: #f0f2e9;
+  --subtle: #e4e9dc;
+  --table: #e5ecdf;
+  --table-highlight: #edf1e8;
+  --table-ink: #354e32;
+  --table-muted: #4c6043;
+  --control-border: #718269;
+  --action-bg: #304e40;
+  --action-hover: #233e31;
+  --action-ink: #fafbf4;
+  --disabled-bg: #e3e7dd;
+  --disabled-ink: #586450;
+  --phase-active: #e0e8d6;
+  --phase-ink: #334d2d;
+  --red: #9c3c34;
+  --blue: #345f7c;
+  --yellow: #806007;
+  --card-green: #3f643f;
+  --card-wild: #655126;
+  --card-skip: #74527d;
+  --card-face: #fffef8;
+  --card-border: #a2ae96;
+  --card-back: #425d3b;
+  --card-back-ink: #fffef0;
+  --card-back-line: #aabb98;
+  --selected: #365a32;
+  --focus: #855a00;
+  --gold: #8c661b;
+  --shadow: #14281e25;
+  --overlay: #15291fb3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #131b17;
+    --ink: #e9eee2;
+    --secondary: #c5cfbd;
+    --muted: #b2bea9;
+    --green: #b8d5a5;
+    --line: #354a3c;
+    --strong-line: #6b826b;
+    --surface: #19241d;
+    --subtle: #2a3e2d;
+    --table: #1c2c22;
+    --table-highlight: #25392c;
+    --table-ink: #d8e6cc;
+    --table-muted: #b4c6a9;
+    --control-border: #879d79;
+    --action-bg: #b8d5a5;
+    --action-hover: #cde3bd;
+    --action-ink: #172414;
+    --disabled-bg: #28372c;
+    --disabled-ink: #b2bea9;
+    --phase-active: #2c412d;
+    --phase-ink: #d3e6c8;
+    --red: #ffa99b;
+    --blue: #a5d1f2;
+    --yellow: #f1d085;
+    --card-green: #b1d5a1;
+    --card-wild: #ead6a4;
+    --card-skip: #d8b8ec;
+    --card-face: #27352d;
+    --card-border: #6b826b;
+    --card-back: #344e3a;
+    --card-back-ink: #f4f4e3;
+    --card-back-line: #9bb98a;
+    --selected: #c3dea9;
+    --focus: #f2cf7d;
+    --gold: #e2c47e;
+    --shadow: #00000066;
+    --overlay: #080f0be0;
+  }
+}
+
+@theme {
+  --font-sans: "DM Sans", sans-serif;
+  --font-display: "Manrope", "DM Sans", sans-serif;
+  --font-serif: Georgia, serif;
+  --breakpoint-tablet: 681px;
+  --breakpoint-wide: 851px;
+  --breakpoint-desktop: 1151px;
+  --breakpoint-roomy: 1450px;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-accent: var(--green);
+  --color-line: var(--line);
+  --color-strong-line: var(--strong-line);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-table: var(--table);
+  --color-table-ink: var(--table-ink);
+  --color-table-muted: var(--table-muted);
+  --color-control: var(--control-border);
+  --color-action: var(--action-bg);
+  --color-action-hover: var(--action-hover);
+  --color-action-ink: var(--action-ink);
+  --color-disabled: var(--disabled-bg);
+  --color-disabled-ink: var(--disabled-ink);
+  --color-phase-active: var(--phase-active);
+  --color-phase-ink: var(--phase-ink);
+  --color-card-red: var(--red);
+  --color-card-blue: var(--blue);
+  --color-card-yellow: var(--yellow);
+  --color-card-green: var(--card-green);
+  --color-card-wild: var(--card-wild);
+  --color-card-skip: var(--card-skip);
+  --color-card-face: var(--card-face);
+  --color-card-border: var(--card-border);
+  --color-card-back: var(--card-back);
+  --color-card-back-ink: var(--card-back-ink);
+  --color-card-back-line: var(--card-back-line);
+  --color-selected: var(--selected);
+  --color-gold: var(--gold);
+  --color-overlay: var(--overlay);
+}
+
+@layer base {
+  body { @apply m-0 bg-paper font-sans text-sm text-ink antialiased; }
+  button { @apply cursor-pointer touch-manipulation; }
+  button:disabled { @apply cursor-default; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 5px; }
+}
+
+@layer components {
+  .game-table {
+    background-image: radial-gradient(ellipse at 50% 40%, var(--table-highlight) 0%, transparent 65%);
+  }
+  .card::before {
+    content: "";
+    @apply pointer-events-none absolute inset-1 rounded-sm border;
+    border-color: color-mix(in srgb, currentColor 20%, transparent);
+  }
+  .card-back::before { display: none; }
+  .card.selected::after {
+    content: "✓";
+    @apply absolute -bottom-[9px] left-[calc(50%_-_8px)] grid size-4 place-items-center rounded-full border-2 border-paper bg-action text-[8px] text-action-ink;
+  }
+  .card.red .card-suit { @apply rotate-45 rounded-none; }
+  .card.blue .card-suit { @apply rounded-none; }
+  .card.yellow .card-suit {
+    @apply h-0 w-0 rounded-none bg-transparent;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-bottom: 6px solid currentColor;
+  }
+  .mini-back::after {
+    content: "✳";
+    @apply absolute inset-0.5 grid place-items-center border border-card-back-line text-[15px] text-card-back-ink;
+  }
+  .turn-badge::before {
+    content: "";
+    @apply size-1 rounded-full bg-accent;
+  }
+  .turn-badge.thinking::before { animation: thinking 1s infinite; }
+}
+
+@keyframes thinking { 50% { opacity: .3; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
